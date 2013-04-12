@@ -13,7 +13,7 @@ static void* delegate;
 }
 @property bool isFinsh;
 -(id) init;
--(void) movieFinishedCallback:(id) _player;
+-(void) movieFinishedCallback:(NSNotification*) aNotification;
 @end
 @implementation CCMoivePlayerDelegate
 -(id)init

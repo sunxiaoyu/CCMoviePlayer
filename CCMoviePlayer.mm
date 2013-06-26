@@ -13,7 +13,7 @@ static void* delegate;
 }
 @property bool isFinsh;
 -(id) init;
--(void) movieFinishedCallback:(NSNotification*) aNotification;
+-(void) movieFinishedCallback:(id) _player;
 @end
 @implementation CCMoivePlayerDelegate
 -(id)init
@@ -26,16 +26,27 @@ static void* delegate;
 }
 -(void) movieFinishedCallback:(NSNotification*) aNotification
 {
-    MPMoviePlayerController *_player = [aNotification object];
-    [[NSNotificationCenter defaultCenter] removeObserver:self
+ MPMoviePlayerController *_player = [aNotification object];
+[[NSNotificationCenter defaultCenter] removeObserver:self
                                                     name:MPMediaPlaybackIsPreparedToPlayDidChangeNotification
                                                   object:_player];    
-    [[_player view] removeFromSuperview];
+    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    [keyWindow.rootViewController dismissViewControllerAnimated:NO completion:NULL];
     [_player release];
     
     self.isFinsh = true;
 }
 @end
+
+
+@interface MyMovieViewController : MPMoviePlayerViewController
+@end
+@implementation MyMovieViewController
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation{
+    return UIInterfaceOrientationIsLandscape(toInterfaceOrientation);
+}
+@end
+
 
 void CCMoviePlayer::playMovieWithFile(const char *_file)
 {
@@ -43,16 +54,20 @@ void CCMoviePlayer::playMovieWithFile(const char *_file)
     NSString *moviePath = [bundle pathForResource:[NSString stringWithFormat:@"%s",_file] ofType:@"mp4"];
     if (moviePath)
     {
+        UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
         NSURL *movieURL = [NSURL fileURLWithPath:moviePath];
         MPMoviePlayerController* theMovie = [[MPMoviePlayerController alloc] initWithContentURL:movieURL];
         [theMovie setControlStyle:MPMovieControlStyleNone];
-        UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
-        [keyWindow addSubview: [theMovie view]];
+        [[theMovie view] setAutoresizesSubviews:YES];
         [[theMovie view] setHidden:NO];
         [[theMovie view] setFrame:CGRectMake( 0, 0, keyWindow.frame.size.width, keyWindow.frame.size.height)];
         [[theMovie view] setCenter:keyWindow.center];
         [theMovie play];
         
+        MPMoviePlayerViewController * vc = [[[MyMovieViewController alloc] init] autorelease];
+        vc.view = theMovie.view;
+        [keyWindow.rootViewController presentViewController:vc animated:NO completion:NULL];
+
         delegate = [[CCMoivePlayerDelegate alloc] init];
         [[NSNotificationCenter defaultCenter] addObserver:(CCMoivePlayerDelegate*)delegate
                                                  selector:@selector(movieFinishedCallback:)
